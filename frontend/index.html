@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Realtime Orders</title>
+
+  <style>
+
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    #orders {
+      margin-top: 20px;
+    }
+
+    .order {
+      background: white;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .event {
+      margin-top: 20px;
+      padding: 10px;
+      background: #222;
+      color: #00ff88;
+      border-radius: 8px;
+      font-family: monospace;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <h1>Realtime Orders Dashboard</h1>
+
+  <div id="orders"></div>
+
+  <div class="event" id="eventLog">
+    Waiting for realtime updates...
+  </div>
+
+
+  <!-- Socket.io Client -->
+  <script src="http://localhost:5000/socket.io/socket.io.js"></script>
+
+  <script>
+
+    const ordersContainer =
+      document.getElementById("orders");
+
+    const eventLog =
+      document.getElementById("eventLog");
+
+
+    // Connect socket
+    const socket = io("http://localhost:5000");
+
+
+    // Fetch existing orders
+    async function fetchOrders() {
+
+      const response = await fetch(
+        "http://localhost:5000/api/orders"
+      );
+
+      const result = await response.json();
+
+      renderOrders(result.data);
+    }
+
+
+    // Render orders
+    function renderOrders(orders) {
+
+      ordersContainer.innerHTML = "";
+
+      orders.forEach((order) => {
+
+        const div = document.createElement("div");
+
+        div.className = "order";
+
+        div.innerHTML = `
+          <h3>${order.customer_name}</h3>
+
+          <p>
+            Product:
+            ${order.product_name}
+          </p>
+
+          <p>
+            Status:
+            <strong>${order.status}</strong>
+          </p>
+
+          <p>
+            Updated:
+            ${new Date(order.updated_at)
+              .toLocaleString()}
+          </p>
+        `;
+
+        ordersContainer.appendChild(div);
+      });
+    }
+
+
+    // Listen for realtime updates
+    socket.on("ordersUpdated", async (payload) => {
+
+      console.log("Realtime update:", payload);
+
+      eventLog.innerHTML = `
+        <strong>Realtime Event:</strong>
+        <br />
+        ${JSON.stringify(payload, null, 2)}
+      `;
+
+      // Refetch latest data
+      await fetchOrders();
+    });
+
+
+    // Initial fetch
+    fetchOrders();
+
+  </script>
+
+</body>
+</html>
